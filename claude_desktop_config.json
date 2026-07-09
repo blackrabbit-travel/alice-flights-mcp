@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "alice": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://mcp.alice.co.il/mcp"]
+    }
+  }
+}
