@@ -1,0 +1,13 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "il.co.alice/flights",
+  "description": "Search flights by route, dates, passengers, and cabin class. By Alice, Israel's travel app.",
+  "version": "1.0.0",
+  "websiteUrl": "https://mcp.alice.co.il",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.alice.co.il/mcp"
+    }
+  ]
+}
