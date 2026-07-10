@@ -74,11 +74,11 @@ For **stdio-only** clients, bridge it with [`mcp-remote`](https://www.npmjs.com/
 
 (The first connection opens a browser once for the anonymous OAuth consent.)
 
-## The `search_flights` tool
+## Tools
 
-Search by **origin, destination, dates, passengers, and cabin class** (with an optional
-`language` of `en`/`he`). Returns flight options tagged `best` / `cheapest` / `fastest`,
-each with price, itinerary, baggage, and `seats_remaining`.
+- **search_flights** — Search flights by **origin, destination, dates, passengers, and cabin
+  class** (with an optional `language` of `en`/`he`). Returns options tagged `best` /
+  `cheapest` / `fastest`, each with price, itinerary, baggage, and `seats_remaining`.
 
 Try asking:
 - *"Find me a flight from Tel Aviv to London next Thursday, back on Sunday."*
