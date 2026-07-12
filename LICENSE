@@ -2,11 +2,6 @@ MIT License
 
 Copyright (c) 2026 Alice (BlackRabbit)
 
-This license covers only the contents of this connector reference repository
-(documentation, Dockerfile, server.json, and configuration examples). The hosted
-Alice Flights MCP service and its source code are proprietary and are not covered
-by this license.
-
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
