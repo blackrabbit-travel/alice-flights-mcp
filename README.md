@@ -1,5 +1,7 @@
 # Alice Flights — MCP Server for Flight Search
 
+[![Alice Flights MCP server — Glama score](https://glama.ai/mcp/servers/blackrabbit-travel/alice-flights-mcp/badges/score.svg)](https://glama.ai/mcp/servers/blackrabbit-travel/alice-flights-mcp)
+
 **Add real-time flight search to Claude and any MCP client.** Alice Flights is a
 hosted, remote [Model Context Protocol](https://modelcontextprotocol.io) (MCP)
 server that lets an AI assistant search flights — best, cheapest, and fastest
