@@ -1,0 +1,41 @@
+{
+  "name": "alice-flights-mcp",
+  "version": "1.0.0",
+  "description": "Standalone MCP server for Alice flight search — search flights (best/cheapest/fastest) with prices, itineraries, baggage, and seat availability. Reference implementation of the hosted Alice Flights connector (mcp.alice.co.il).",
+  "type": "module",
+  "bin": {
+    "alice-flights-mcp": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "smoke": "node scripts/smoke.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "flights",
+    "flight-search",
+    "travel",
+    "alice"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.4.0"
+  }
+}
