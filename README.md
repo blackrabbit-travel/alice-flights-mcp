@@ -1,17 +1,18 @@
 # Alice Flights — MCP Server for Flight Search
 
-[![Alice Flights MCP server — Glama score](https://glama.ai/mcp/servers/blackrabbit-travel/alice-flights-mcp/badges/score.svg)](https://glama.ai/mcp/servers/blackrabbit-travel/alice-flights-mcp)
+[![Alice Flights MCP server — Glama score](https://glama.ai/mcp/servers/blackrabbit-travel/alice-flights-mcp/badges/score.svg)](https://glama.ai/mcp/servers/blackrabbit-travel/alice-flights-mcp) [![smithery badge](https://smithery.ai/badge/orb/alice)](https://smithery.ai/servers/orb/alice)
 
 **Add real-time flight search to Claude and any MCP client.** Alice Flights is a
 hosted, remote [Model Context Protocol](https://modelcontextprotocol.io) (MCP)
 server that lets an AI assistant search flights — best, cheapest, and fastest
 options with live seat availability — directly in a conversation. Powered by
-[Alice](https://www.alice.co.il), Israel's flight-booking travel app.
+[Alice](https://www.alice.co.il), one of Israel's best-known travel apps and a top flight seller.
 
-> This is the public **connector reference** for the Alice Flights MCP server. The
-> server is hosted by Alice at `https://mcp.alice.co.il/mcp` — there's nothing to
-> install or self-host. This repo documents how to connect and links to the
-> official listings.
+> This repository is the **reference implementation** of the Alice Flights MCP
+> server *and* documentation for the hosted service. For everyday use there's
+> nothing to run — Alice hosts it at `https://mcp.alice.co.il/mcp` (one-click,
+> no API key). You can also [**run this server yourself**](#run-it-yourself): it's
+> a complete, standalone MCP server, not a proxy.
 
 - **Endpoint:** `https://mcp.alice.co.il/mcp` (Streamable HTTP)
 - **Auth:** OAuth 2.0 — one-click, anonymous consent. No account, no API key.
@@ -25,8 +26,10 @@ options with live seat availability — directly in a conversation. Powered by
   option carries *why* it was picked.
 - **Live seat availability** — a low-seats note when only a few seats remain.
 - **Interactive results widget** (MCP Apps) — carrier chips, itinerary timeline, baggage
-  info, tabs, and a nonstop filter; renders inline in hosts like Claude Cowork.
-- **Bilingual** — ask in **English or Hebrew**; Hebrew results render right-to-left.
+  info, tabs, and a nonstop filter; renders inline in hosts like Claude Cowork. *(Hosted
+  service only.)*
+- **Bilingual** — ask in **English or Hebrew**; Hebrew results render right-to-left. *(Hosted
+  service only.)*
 - **Read-only & anonymous** — it searches and links you to book on alice.co.il; it can't
   book, charge, or change anything, and it needs no sign-in.
 
@@ -61,7 +64,7 @@ MCP-capable client. Clients that read an `mcp.json`:
 }
 ```
 
-For **stdio-only** clients, bridge it with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
+For **stdio-only** clients, bridge the hosted endpoint with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
 
 ```json
 {
@@ -76,11 +79,48 @@ For **stdio-only** clients, bridge it with [`mcp-remote`](https://www.npmjs.com/
 
 (The first connection opens a browser once for the anonymous OAuth consent.)
 
+## Run it yourself
+
+This repo is a complete, standalone MCP server (TypeScript, stdio transport) that talks
+**directly** to the Alice flight-search API — no proxying.
+
+```bash
+git clone https://github.com/blackrabbit-travel/alice-flights-mcp
+cd alice-flights-mcp
+npm install
+npm run build
+cp .env.example .env      # add your Alice affiliate credentials
+npm start                 # runs the MCP server on stdio
+```
+
+Configuration (see [`.env.example`](./.env.example)):
+
+| Variable | Required | Description |
+|---|---|---|
+| `ALICE_API_URL` | for real searches | Alice flight-search API endpoint (issued by Alice) |
+| `ALICE_AFFILIATE_ID` | for real searches | Your Alice affiliate ID |
+| `ALICE_SECRET` | for real searches | Your Alice affiliate secret |
+
+> **Credentials.** `ALICE_AFFILIATE_ID` / `ALICE_SECRET` are private partner credentials
+> issued by Alice — they live only in your environment and are **never committed** to this
+> repo. Without them the server still starts and lists its tools; searches return a clear
+> "missing credentials" message. **Most users don't need this** — just use the hosted
+> endpoint above.
+
+Or with Docker:
+
+```bash
+docker build -t alice-flights-mcp .
+docker run -i --rm -e ALICE_API_URL=… -e ALICE_AFFILIATE_ID=… -e ALICE_SECRET=… alice-flights-mcp
+```
+
+Point any stdio MCP client at the built entry (`node dist/index.js`).
+
 ## Tools
 
 - **search_flights** — Search flights by **origin, destination, dates, passengers, and cabin
-  class** (with an optional `language` of `en`/`he`). Returns options tagged `best` /
-  `cheapest` / `fastest`, each with price, itinerary, baggage, and `seats_remaining`.
+  class**. Returns options tagged `best` / `cheapest` / `fastest`, each with price, itinerary,
+  baggage, and `seats_remaining`.
 
 Try asking:
 - *"Find me a flight from Tel Aviv to London next Thursday, back on Sunday."*
@@ -88,6 +128,8 @@ Try asking:
 
 ## About
 
-Operated by Alice ([alice.co.il](https://www.alice.co.il)). The hosted service's source is
-proprietary; the **MIT license** in this repository covers only this connector reference
-(README, `Dockerfile`, `server.json`, config examples).
+Operated by Alice ([alice.co.il](https://www.alice.co.il)). The flight-search **backend**
+(the search engine and pricing) is proprietary; the **MIT license** in this repository covers
+this connector — the MCP server implementation, `Dockerfile`, `server.json`, and config
+examples. The hosted service adds an interactive widget, bilingual UI, and OAuth consent on
+top of the same `search_flights` tool.
