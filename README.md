@@ -2,7 +2,7 @@
 
 [![Alice Flights MCP server — Glama score](https://glama.ai/mcp/servers/blackrabbit-travel/alice-flights-mcp/badges/score.svg)](https://glama.ai/mcp/servers/blackrabbit-travel/alice-flights-mcp) [![smithery badge](https://smithery.ai/badge/orb/alice)](https://smithery.ai/servers/orb/alice)
 
-**Add real-time flight search to Claude and any MCP client.** Alice Flights is a
+**Add real-time flight search to any MCP client.** Alice Flights is a
 hosted, remote [Model Context Protocol](https://modelcontextprotocol.io) (MCP)
 server that lets an AI assistant search flights — best, cheapest, and fastest
 options with live seat availability — directly in a conversation. Powered by
@@ -26,27 +26,12 @@ options with live seat availability — directly in a conversation. Powered by
   option carries *why* it was picked.
 - **Live seat availability** — a low-seats note when only a few seats remain.
 - **Interactive results widget** (MCP Apps) — carrier chips, itinerary timeline, baggage
-  info, tabs, and a nonstop filter; renders inline in hosts like Claude Cowork. *(Hosted
+  info, tabs, and a nonstop filter; renders inline in hosts that support MCP Apps. *(Hosted
   service only.)*
 - **Bilingual** — ask in **English or Hebrew**; Hebrew results render right-to-left. *(Hosted
   service only.)*
 - **Read-only & anonymous** — it searches and links you to book on alice.co.il; it can't
   book, charge, or change anything, and it needs no sign-in.
-
-## Add it to Claude
-
-**claude.ai / Claude Desktop / Cowork:** open *Settings → Connectors → Add custom
-connector*, paste the endpoint, and click **Connect** (approve the one-click consent):
-
-```
-https://mcp.alice.co.il/mcp
-```
-
-**Claude Code:**
-
-```bash
-claude mcp add --transport http alice https://mcp.alice.co.il/mcp
-```
 
 ## Use it from any MCP client
 
@@ -82,39 +67,49 @@ For **stdio-only** clients, bridge the hosted endpoint with [`mcp-remote`](https
 ## Run it yourself
 
 This repo is a complete, standalone MCP server (TypeScript, stdio transport) that talks
-**directly** to the Alice flight-search API — no proxying.
+to Alice's **public flight-search endpoint** (`api.alice.co.il`). **No credentials, no
+API key, no sign-up** — the affiliate identity is attached server-side at Alice's edge, so
+nothing secret is ever in this repo or on your machine.
 
 ```bash
 git clone https://github.com/blackrabbit-travel/alice-flights-mcp
 cd alice-flights-mcp
 npm install
 npm run build
-cp .env.example .env      # add your Alice affiliate credentials
+npm run smoke             # boots the server, runs the MCP handshake and a real live search
 npm start                 # runs the MCP server on stdio
 ```
 
-Configuration (see [`.env.example`](./.env.example)):
+Then point any stdio MCP client at the built entry:
 
-| Variable | Required | Description |
-|---|---|---|
-| `ALICE_API_URL` | for real searches | Alice flight-search API endpoint (issued by Alice) |
-| `ALICE_AFFILIATE_ID` | for real searches | Your Alice affiliate ID |
-| `ALICE_SECRET` | for real searches | Your Alice affiliate secret |
-
-> **Credentials.** `ALICE_AFFILIATE_ID` / `ALICE_SECRET` are private partner credentials
-> issued by Alice — they live only in your environment and are **never committed** to this
-> repo. Without them the server still starts and lists its tools; searches return a clear
-> "missing credentials" message. **Most users don't need this** — just use the hosted
-> endpoint above.
+```json
+{
+  "mcpServers": {
+    "alice": {
+      "command": "node",
+      "args": ["/path/to/alice-flights-mcp/dist/index.js"]
+    }
+  }
+}
+```
 
 Or with Docker:
 
 ```bash
 docker build -t alice-flights-mcp .
-docker run -i --rm -e ALICE_API_URL=… -e ALICE_AFFILIATE_ID=… -e ALICE_SECRET=… alice-flights-mcp
+docker run -i --rm alice-flights-mcp
 ```
 
-Point any stdio MCP client at the built entry (`node dist/index.js`).
+> **Rate limit.** The public endpoint allows **10 searches per minute and 200 per day per IP
+> address**. Beyond that it answers `429` with a `Retry-After`, which the server turns into a
+> plain "try again in N seconds" message. That is plenty for personal use; for anything
+> heavier, or for the interactive widget and Hebrew results, use the hosted endpoint above.
+
+Configuration is optional (see [`.env.example`](./.env.example)):
+
+| Variable | Default | Description |
+|---|---|---|
+| `ALICE_API_URL` | `https://api.alice.co.il/flights/search` | Override the search endpoint. Leave unset. |
 
 ## Tools
 

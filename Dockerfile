@@ -1,8 +1,8 @@
 # Builds and runs the Alice Flights MCP server locally over stdio.
 #
-# All configuration is provided at RUNTIME via environment variables (never baked
-# into the image): ALICE_API_URL, ALICE_AFFILIATE_ID, ALICE_SECRET. The server
-# boots without them; real searches then return a clear error. See .env.example.
+# No configuration or credentials are needed: searches go to Alice's public
+# flight-search endpoint by default. ALICE_API_URL may be passed at runtime to
+# override the endpoint (see .env.example); nothing is baked into the image.
 FROM node:22-alpine
 
 WORKDIR /app

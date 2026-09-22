@@ -81,10 +81,8 @@ export interface FlightResult {
 // error if they are unset.
 
 export interface Env {
-  // Full URL of the Alice flight-search API endpoint (issued by Alice).
+  // Full URL of the flight-search endpoint. Defaults to Alice's public front door
+  // (https://api.alice.co.il/flights/search), which needs no credentials: the
+  // affiliate identity is attached server-side at Alice's edge, never by callers.
   ALICE_API_URL: string;
-
-  // Alice affiliate credentials.
-  ALICE_AFFILIATE_ID: string;
-  ALICE_SECRET: string;
 }

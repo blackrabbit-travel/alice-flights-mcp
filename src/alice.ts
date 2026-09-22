@@ -11,12 +11,14 @@ import type {
 
 // ─── Request Builders ────────────────────────────────────────────────────────
 
-// Client for the Alice flight-search API. The endpoint URL and affiliate
-// credentials are supplied entirely at runtime (see Env / .env.example) — nothing
-// about the upstream is hardcoded here. The API returns three curated, overlapping
-// lists (best / cheapest / shortest); we dedupe them by trip id into one
-// FlightResult[] and tag each trip with the categories it appeared in (the upstream
-// "shortest" list is surfaced as the "fastest" category). See categorizeBestResult.
+// Client for Alice's public flight-search endpoint. No credentials are sent:
+// the public front door (api.alice.co.il) attaches the affiliate identity itself,
+// so this client only ever carries the search. It is rate-limited per caller IP
+// (10 searches/min, 200/day) and answers 429 + Retry-After when exceeded.
+// The API returns three curated, overlapping lists (best / cheapest / shortest);
+// we dedupe them by trip id into one FlightResult[] and tag each trip with the
+// categories it appeared in (upstream "shortest" is surfaced as "fastest").
+// See categorizeBestResult.
 
 function buildPassengers(p: FlightSearchParams): Record<string, number> {
   const out: Record<string, number> = {};
@@ -239,7 +241,10 @@ function mapToFlightResult(raw: RawResult, categories: FlightCategory[]): Flight
 
 // Upstream can be slow or hang; bound every call so a stuck request surfaces a
 // clean error instead of hanging the MCP tool call.
-const REQUEST_TIMEOUT_MS = 15_000;
+// 45s, not 15s: real searches routinely take 8–20s and Tel Aviv metro markets can
+// exceed 30s. The hosted connector learned this the hard way — its 15s ceiling was
+// aborting good searches on an ordinary day.
+const REQUEST_TIMEOUT_MS = 45_000;
 const MAX_ATTEMPTS = 2; // one retry, only for transient failures (network / 5xx / masked 400)
 
 // The upstream can wrap an internal failure in a catch-all that returns HTTP 400
@@ -302,28 +307,30 @@ export async function searchFlights(
   params: FlightSearchParams
 ): Promise<FlightResult[]> {
   if (!env.ALICE_API_URL) {
-    throw new Error(
-      "Missing ALICE_API_URL. Set it to the Alice flight-search API endpoint (see .env.example)."
-    );
-  }
-  if (!env.ALICE_AFFILIATE_ID || !env.ALICE_SECRET) {
-    throw new Error(
-      "Missing ALICE_AFFILIATE_ID or ALICE_SECRET. Set them as environment variables " +
-        "(see .env.example). These are Alice affiliate credentials — contact Alice to obtain them."
-    );
+    // Unreachable with the built-in default; kept so an explicit empty override
+    // fails loudly instead of fetching "".
+    throw new Error("ALICE_API_URL is empty. Unset it to use the default public endpoint.");
   }
 
   const response = await postSearch(
     env.ALICE_API_URL,
     JSON.stringify({
-      affiliateId: env.ALICE_AFFILIATE_ID,
-      secret: env.ALICE_SECRET,
       flightClass: params.flight_class,
       passengers: buildPassengers(params),
       segments: buildSegments(params),
     }),
     { "Content-Type": "application/json" }
   );
+
+  if (response.status === 429) {
+    // The public endpoint's per-IP limiter. Tell the caller exactly how long to
+    // wait so the model can say so instead of retrying into the limiter.
+    const retryAfter = response.headers.get("retry-after") ?? "60";
+    throw new Error(
+      "Alice's public flight-search endpoint is rate-limited to 10 searches per minute " +
+        `and 200 per day per IP address. Try again in ${retryAfter} seconds.`
+    );
+  }
 
   if (!response.ok) {
     // Log the upstream body to stderr for diagnostics, but don't surface it to

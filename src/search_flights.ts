@@ -123,7 +123,15 @@ export function registerSearchFlights(server: McpServer, env: Env) {
         "booking link. Options may include `seats_remaining` — the number of seats left in this " +
         "booking class at this price; values of 4 or fewer indicate limited availability.",
       inputSchema: SearchFlightsInput,
-      annotations: { title: "Search Flights", readOnlyHint: true, openWorldHint: true },
+      // All three hints stated explicitly: registries and app reviews treat a
+      // missing one as unknown, and "missing action labels" is a documented
+      // rejection cause. Nothing here can delete, overwrite or cancel anything.
+      annotations: {
+        title: "Search Flights",
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
     },
     async (input) => {
       try {

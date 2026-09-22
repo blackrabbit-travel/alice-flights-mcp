@@ -1,20 +1,23 @@
 // Smoke test for the Alice Flights MCP server.
 // Spawns `node dist/index.js` and runs the real MCP handshake (initialize →
-// tools/list → tools/call) via the official SDK client, then reports PASS/FAIL.
+// tools/list → tools/call) via the official SDK client, then a LIVE search
+// against Alice's public endpoint, and reports PASS/FAIL. No credentials needed.
 //
 //   npm run build
-//   node scripts/smoke.mjs                                        # boot + introspect + graceful no-creds search
-//   ALICE_AFFILIATE_ID=… ALICE_SECRET=… node scripts/smoke.mjs    # full live search
+//   node scripts/smoke.mjs                        # TLV→LON, departing 30 days from now
+//   node scripts/smoke.mjs TLV ATH 2026-11-05     # explicit route / dates
+//   node scripts/smoke.mjs CDG NRT 2026-11-05 2026-11-12
 //
-// Optional args: origin destination departure_date [return_date]
-//   node scripts/smoke.mjs TLV LON 2026-08-15 2026-08-20
+// Mind the public endpoint's limiter: 10 searches per minute per IP.
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
-const [origin = "TLV", destination = "LON", departure_date = "2026-08-15", return_date] =
+// Default departure is always in the future, so this never rots into a
+// past-date rejection the way a hard-coded date would.
+const in30Days = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+const [origin = "TLV", destination = "LON", departure_date = in30Days, return_date] =
   process.argv.slice(2);
-const hasCreds = Boolean(process.env.ALICE_AFFILIATE_ID && process.env.ALICE_SECRET);
 
 const transport = new StdioClientTransport({
   command: "node",
@@ -30,27 +33,32 @@ try {
 
   const { tools } = await client.listTools();
   const names = tools.map((t) => t.name);
-  const hasTool = names.includes("search_flights");
-  console.log(`${hasTool ? "✓" : "✗"} tools/list → [${names.join(", ")}]`);
-  if (!hasTool) failed = true;
+  const tool = tools.find((t) => t.name === "search_flights");
+  console.log(`${tool ? "✓" : "✗"} tools/list → [${names.join(", ")}]`);
+  if (!tool) failed = true;
+
+  const a = tool?.annotations ?? {};
+  const annotationsOk =
+    a.readOnlyHint === true && a.destructiveHint === false && a.openWorldHint === true;
+  console.log(
+    `${annotationsOk ? "✓" : "✗"} annotations → readOnly=${a.readOnlyHint} destructive=${a.destructiveHint} openWorld=${a.openWorldHint}`
+  );
+  if (!annotationsOk) failed = true;
 
   const args = { origin, destination, departure_date, adults: 1 };
   if (return_date) args.return_date = return_date;
   console.log(
-    `… calling search_flights ${origin}→${destination} ${departure_date}` +
-      `${return_date ? " / " + return_date : ""}  (creds: ${hasCreds ? "yes" : "no"})`
+    `… calling search_flights ${origin}→${destination} ${departure_date}${return_date ? " / " + return_date : ""}`
   );
+  const t0 = Date.now();
   const res = await client.callTool({ name: "search_flights", arguments: args });
+  const secs = ((Date.now() - t0) / 1000).toFixed(1);
   const text = res.content?.[0]?.text ?? "";
   if (res.isError) {
-    if (hasCreds) {
-      console.log("✗ search errored WITH creds present:\n   " + text);
-      failed = true;
-    } else {
-      console.log("✓ search returned a graceful error (no creds — expected):\n   " + text.split("\n")[0]);
-    }
+    console.log(`✗ search errored after ${secs}s:\n   ` + text.split("\n")[0]);
+    failed = true;
   } else {
-    console.log("✓ search succeeded — total:", res.structuredContent?.total);
+    console.log(`✓ live search succeeded in ${secs}s — total: ${res.structuredContent?.total}`);
     console.log(text.split("\n").slice(0, 8).map((l) => "   " + l).join("\n"));
   }
 } catch (e) {

@@ -4,5 +4,6 @@ npm-debug.log*
 yarn-error.log*
 .env
 .env.*
+!.env.example
 .DS_Store
 .mcp-auth/
